@@ -87,6 +87,20 @@ typedef struct
 #define CORSAIR_K100_MXRED_PID                      0x1B7D
 
 /*-----------------------------------------------------*\
+| Corsair K65 Plus Wireless                             |
+|   One PID per regional layout, in two hardware        |
+|   revisions.  The keyboard also appears behind the    |
+|   Slipstream dongle under CORSAIR_K65_PLUS_DONGLE_PID.|
+\*-----------------------------------------------------*/
+#define CORSAIR_K65_PLUS_DONGLE_PID                 0x2B07
+#define CORSAIR_K65_PLUS_NA_PID                     0x2B10
+#define CORSAIR_K65_PLUS_UK_PID                     0x2B11
+#define CORSAIR_K65_PLUS_JP_PID                     0x2B12
+#define CORSAIR_K65_PLUS_V2_NA_PID                  0x2B23
+#define CORSAIR_K65_PLUS_V2_UK_PID                  0x2B26
+#define CORSAIR_K65_PLUS_V2_JP_PID                  0x2B37
+
+/*-----------------------------------------------------*\
 | Corsair V2 Protocol Mice                              |
 \*-----------------------------------------------------*/
 #define CORSAIR_DARK_CORE_RGB_PID                   0x1B4B

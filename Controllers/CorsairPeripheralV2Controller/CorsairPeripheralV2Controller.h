@@ -45,6 +45,7 @@ enum corsair_v2_cmd
     CORSAIR_V2_CMD_BLK_W1               = 0x06,     /* Block write packet 1             */
     CORSAIR_V2_CMD_BLK_WN               = 0x07,     /* Block write remaining packets    */
     CORSAIR_V2_CMD_START_TX             = 0x0D,     /* Start Transaction                */
+    CORSAIR_V2_CMD_SESSION_START        = 0x12,     /* Wake a subdevice behind a dongle */
 };
 
 enum corsair_v2_mode
@@ -75,7 +76,13 @@ enum corsair_v2_color
 class CorsairPeripheralV2Controller
 {
 public:
-    CorsairPeripheralV2Controller(hid_device* dev_handle, const char* path, std::string name);
+    /*---------------------------------------------------------*\
+    | Devices that only answer START_TX once they are already in |
+    |   software mode must skip the lighting endpoint probe and  |
+    |   select light_ctrl themselves.  See the K65 Plus.         |
+    \*---------------------------------------------------------*/
+    CorsairPeripheralV2Controller(hid_device* dev_handle, const char* path, std::string name,
+                                  bool probe_light_ctrl = true);
     virtual ~CorsairPeripheralV2Controller();
 
     std::string                     GetDeviceLocation();
@@ -84,7 +91,7 @@ public:
     std::string                     GetName();
     std::string                     GetSerialString();
     const corsair_v2_device*        GetDeviceData();
-    unsigned int                    GetKeyboardLayout();
+    virtual unsigned int            GetKeyboardLayout();
 
     void                            SetRenderMode(corsair_v2_device_mode mode);
     void                            LightingControl(uint8_t opt1);
@@ -95,21 +102,28 @@ public:
     virtual void                    SetLedsDirect(std::vector<RGBColor *> colors)                   = 0;
 
 protected:
-    uint16_t                        device_index;
+    void                            ClearPacketBuffer();
+    unsigned int                    GetAddress(uint8_t address);
+    void                            SessionStart();
+    unsigned char                   StartTransaction(uint8_t handle, uint16_t resource);
+    void                            StopTransaction(uint8_t handle);
+
+    /*---------------------------------------------------------*\
+    | Block write without the surrounding transaction, for       |
+    |   devices that hold a lighting handle open across frames.  |
+    \*---------------------------------------------------------*/
+    void                            WriteBlock(uint8_t handle, uint8_t* data, uint16_t data_size);
+
+    uint16_t                        device_index        = 0;
     std::string                     device_name;
     uint8_t                         light_ctrl          = CORSAIR_V2_LIGHT_CTRL2;
 
-private:
-    void                            ClearPacketBuffer();
-    unsigned int                    GetAddress(uint8_t address);
-    unsigned char                   StartTransaction(uint8_t opt1);
-    void                            StopTransaction(uint8_t opt1);
-
     hid_device*                     dev;
-
     uint8_t                         write_cmd           = CORSAIR_V2_WRITE_WIRED_ID;
     uint16_t                        pkt_sze             = CORSAIR_V2_WRITE_SIZE;
     bool                            skip_reads          = false;
+
+private:
     std::string                     firmware_version;
     std::string                     location;
 };

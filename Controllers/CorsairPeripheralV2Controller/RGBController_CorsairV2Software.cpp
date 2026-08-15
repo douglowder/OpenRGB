@@ -22,7 +22,7 @@ using namespace std::chrono_literals;
     @save :x:
     @direct :white_check_mark:
     @effects :x:
-    @detectors DetectCorsairV2SoftwareControllers
+    @detectors DetectCorsairV2SoftwareControllers, DetectCorsairV2K65PlusControllers
     @comment
 \*-------------------------------------------------------------------*/
 

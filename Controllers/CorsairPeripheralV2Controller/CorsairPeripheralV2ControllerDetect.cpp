@@ -17,6 +17,7 @@
 | Corsair Peripheral specific includes                      |
 \*---------------------------------------------------------*/
 #include "CorsairPeripheralV2Devices.h"
+#include "CorsairPeripheralV2K65PlusController.h"
 #include "RGBController_CorsairV2Hardware.h"
 #include "RGBController_CorsairV2Software.h"
 
@@ -63,6 +64,24 @@ DetectedControllers DetectCorsairV2SoftwareControllers(hid_device_info* info, co
     return(detected_controllers);
 }
 
+DetectedControllers DetectCorsairV2K65PlusControllers(hid_device_info* info, const std::string& name)
+{
+    DetectedControllers detected_controllers;
+    hid_device*         dev;
+
+    dev = hid_open_path(info->path);
+
+    if(dev)
+    {
+        CorsairPeripheralV2K65PlusController*   controller      = new CorsairPeripheralV2K65PlusController(dev, info->path, name);
+        RGBController_CorsairV2SW*              rgb_controller  = new RGBController_CorsairV2SW(controller);
+
+        detected_controllers.push_back(rgb_controller);
+    }
+
+    return(detected_controllers);
+}
+
 /*---------------------------------------------------------*\
 | Keyboards                                                 |
 \*---------------------------------------------------------*/
@@ -83,6 +102,14 @@ REGISTER_HID_DETECTOR_IP("Corsair K95 RGB PLATINUM XT",             DetectCorsai
 REGISTER_HID_DETECTOR_IP("Corsair K100 RGB Optical",                DetectCorsairV2HardwareControllers, CORSAIR_VID,    CORSAIR_K100_OPTICAL_V1_PID,            1,  0xFF42);
 REGISTER_HID_DETECTOR_IP("Corsair K100 RGB Optical",                DetectCorsairV2HardwareControllers, CORSAIR_VID,    CORSAIR_K100_OPTICAL_V2_PID,            1,  0xFF42);
 REGISTER_HID_DETECTOR_IP("Corsair K100 MX Red",                     DetectCorsairV2HardwareControllers, CORSAIR_VID,    CORSAIR_K100_MXRED_PID,                 1,  0xFF42);
+
+REGISTER_HID_DETECTOR_IP("Corsair K65 Plus Wireless",               DetectCorsairV2K65PlusControllers,  CORSAIR_VID,    CORSAIR_K65_PLUS_DONGLE_PID,            1,  0xFF42);
+REGISTER_HID_DETECTOR_IP("Corsair K65 Plus (Wired)",                DetectCorsairV2K65PlusControllers,  CORSAIR_VID,    CORSAIR_K65_PLUS_NA_PID,                1,  0xFF42);
+REGISTER_HID_DETECTOR_IP("Corsair K65 Plus (Wired)",                DetectCorsairV2K65PlusControllers,  CORSAIR_VID,    CORSAIR_K65_PLUS_UK_PID,                1,  0xFF42);
+REGISTER_HID_DETECTOR_IP("Corsair K65 Plus (Wired)",                DetectCorsairV2K65PlusControllers,  CORSAIR_VID,    CORSAIR_K65_PLUS_JP_PID,                1,  0xFF42);
+REGISTER_HID_DETECTOR_IP("Corsair K65 Plus V2 (Wired)",             DetectCorsairV2K65PlusControllers,  CORSAIR_VID,    CORSAIR_K65_PLUS_V2_NA_PID,             1,  0xFF42);
+REGISTER_HID_DETECTOR_IP("Corsair K65 Plus V2 (Wired)",             DetectCorsairV2K65PlusControllers,  CORSAIR_VID,    CORSAIR_K65_PLUS_V2_UK_PID,             1,  0xFF42);
+REGISTER_HID_DETECTOR_IP("Corsair K65 Plus V2 (Wired)",             DetectCorsairV2K65PlusControllers,  CORSAIR_VID,    CORSAIR_K65_PLUS_V2_JP_PID,             1,  0xFF42);
 
 /*---------------------------------------------------------*\
 | Mice                                                      |

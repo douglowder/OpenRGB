@@ -14,7 +14,8 @@
 
 using namespace std::chrono_literals;
 
-CorsairPeripheralV2Controller::CorsairPeripheralV2Controller(hid_device* dev_handle, const char* path, std::string name)
+CorsairPeripheralV2Controller::CorsairPeripheralV2Controller(hid_device* dev_handle, const char* path, std::string name,
+                                                             bool probe_light_ctrl)
 {
     dev                 = dev_handle;
     location            = path;
@@ -33,6 +34,18 @@ CorsairPeripheralV2Controller::CorsairPeripheralV2Controller(hid_device* dev_han
         case CORSAIR_SLIPSTREAM_WIRELESS_V2_PID1:
         case CORSAIR_SLIPSTREAM_WIRELESS_PID2:
             write_cmd   = CORSAIR_V2_WRITE_WIRELESS_ID;
+            pid         = GetAddress(0x12);
+            break;
+
+        case CORSAIR_K65_PLUS_DONGLE_PID:
+            /*---------------------------------------------------------*\
+            | The K65 Plus dongle does not answer for its subdevice     |
+            |   until that subdevice has been woken with a session      |
+            |   start.  Never send one to child 0 - the dongle returns  |
+            |   error 0x07 and stops responding until it is replugged.  |
+            \*---------------------------------------------------------*/
+            write_cmd   = CORSAIR_V2_WRITE_WIRELESS_ID;
+            SessionStart();
             pid         = GetAddress(0x12);
             break;
 
@@ -99,13 +112,13 @@ CorsairPeripheralV2Controller::CorsairPeripheralV2Controller(hid_device* dev_han
     |   If lighting control endpoint 2 is unavailable           |
     |   then use endpoint 1.                                    |
     \*---------------------------------------------------------*/
-    if(light_ctrl == CORSAIR_V2_LIGHT_CTRL2)
+    if(probe_light_ctrl && light_ctrl == CORSAIR_V2_LIGHT_CTRL2)
     {
-        result = StartTransaction(0);
+        result = StartTransaction(0, light_ctrl);
         if(result > 0)
         {
             light_ctrl = CORSAIR_V2_LIGHT_CTRL1;
-            StartTransaction(0);
+            StartTransaction(0, light_ctrl);
         }
         StopTransaction(0);
         LOG_DEBUG("[%s] Lighting Endpoint set to %02X", device_name.c_str(), light_ctrl);
@@ -245,7 +258,24 @@ unsigned int CorsairPeripheralV2Controller::GetAddress(uint8_t address)
     return temp;
 }
 
-unsigned char CorsairPeripheralV2Controller::StartTransaction(uint8_t opt1)
+void CorsairPeripheralV2Controller::SessionStart()
+{
+    uint8_t buffer[CORSAIR_V2_WRITE_SIZE];
+
+    memset(buffer, 0, CORSAIR_V2_WRITE_SIZE);
+
+    buffer[1]   = write_cmd;
+    buffer[2]   = CORSAIR_V2_CMD_SESSION_START;
+
+    hid_write(dev, buffer, CORSAIR_V2_WRITE_SIZE);
+
+    if(!skip_reads)
+    {
+        hid_read_timeout(dev, buffer, CORSAIR_V2_WRITE_SIZE, CORSAIR_V2_TIMEOUT);
+    }
+}
+
+unsigned char CorsairPeripheralV2Controller::StartTransaction(uint8_t handle, uint16_t resource)
 {
     uint8_t buffer[CORSAIR_V2_WRITE_SIZE];
 
@@ -253,8 +283,9 @@ unsigned char CorsairPeripheralV2Controller::StartTransaction(uint8_t opt1)
 
     buffer[1]   = write_cmd;
     buffer[2]   = CORSAIR_V2_CMD_START_TX;
-    buffer[3]   = opt1;
-    buffer[4]   = light_ctrl;
+    buffer[3]   = handle;
+    buffer[4]   = resource & 0xFF;
+    buffer[5]   = (resource >> 8) & 0xFF;
 
     hid_write(dev, buffer, CORSAIR_V2_WRITE_SIZE);
 
@@ -266,7 +297,7 @@ unsigned char CorsairPeripheralV2Controller::StartTransaction(uint8_t opt1)
     return buffer[2];
 }
 
-void CorsairPeripheralV2Controller::StopTransaction(uint8_t opt1)
+void CorsairPeripheralV2Controller::StopTransaction(uint8_t handle)
 {
     uint8_t buffer[CORSAIR_V2_WRITE_SIZE];
 
@@ -275,7 +306,7 @@ void CorsairPeripheralV2Controller::StopTransaction(uint8_t opt1)
     buffer[1]   = write_cmd;
     buffer[2]   = CORSAIR_V2_CMD_STOP_TX;
     buffer[3]   = 0x01;
-    buffer[4]   = opt1;
+    buffer[4]   = handle;
 
     hid_write(dev, buffer, CORSAIR_V2_WRITE_SIZE);
 
@@ -304,6 +335,14 @@ void CorsairPeripheralV2Controller::ClearPacketBuffer()
 
 void CorsairPeripheralV2Controller::SetLEDs(uint8_t *data, uint16_t data_size)
 {
+    ClearPacketBuffer();
+    StartTransaction(0, light_ctrl);
+    WriteBlock(0, data, data_size);
+    StopTransaction(0);
+}
+
+void CorsairPeripheralV2Controller::WriteBlock(uint8_t handle, uint8_t *data, uint16_t data_size)
+{
     const uint8_t offset1   = 8;
     const uint8_t offset2   = 4;
     uint16_t remaining      = data_size;
@@ -311,14 +350,20 @@ void CorsairPeripheralV2Controller::SetLEDs(uint8_t *data, uint16_t data_size)
     uint8_t buffer[CORSAIR_V2_PACKET_SIZE];
     memset(buffer, 0, CORSAIR_V2_PACKET_SIZE);
 
-    ClearPacketBuffer();
-    StartTransaction(0);
+    /*---------------------------------------------------------*\
+    | Replies are read into their own buffer.  Reading them over |
+    |   the packet being built would overwrite the command       |
+    |   header that the continuation packets still rely on.      |
+    \*---------------------------------------------------------*/
+    uint8_t reply[CORSAIR_V2_PACKET_SIZE];
+
     /*---------------------------------------------------------*\
     | Set the data header in packet 1 with the data length      |
     |   signaling how many packets to expect to the device      |
     \*---------------------------------------------------------*/
     buffer[1]               = write_cmd;
     buffer[2]               = CORSAIR_V2_CMD_BLK_W1;
+    buffer[3]               = handle;
     buffer[4]               = data_size & 0xFF;
     buffer[5]               = data_size >> 8;
 
@@ -337,7 +382,7 @@ void CorsairPeripheralV2Controller::SetLEDs(uint8_t *data, uint16_t data_size)
 
     if(!skip_reads)
     {
-        hid_read_timeout(dev, buffer, pkt_sze, CORSAIR_V2_TIMEOUT_SHORT);
+        hid_read_timeout(dev, reply, pkt_sze, CORSAIR_V2_TIMEOUT_SHORT);
     }
 
     remaining              -= copy_bytes;
@@ -362,13 +407,11 @@ void CorsairPeripheralV2Controller::SetLEDs(uint8_t *data, uint16_t data_size)
 
         if(!skip_reads)
         {
-            hid_read_timeout(dev, buffer, pkt_sze, CORSAIR_V2_TIMEOUT_SHORT);
+            hid_read_timeout(dev, reply, pkt_sze, CORSAIR_V2_TIMEOUT_SHORT);
         }
 
         remaining          -= copy_bytes;
     }
-
-    StopTransaction(0);
 }
 
 void CorsairPeripheralV2Controller::UpdateHWMode(uint16_t mode, corsair_v2_color /*color_mode*/, uint8_t /*speed*/,

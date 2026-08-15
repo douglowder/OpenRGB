@@ -31,6 +31,12 @@
 #define CORSAIR_K65_PLUS_RES_INDICATION     0x0013
 #define CORSAIR_K65_PLUS_WIRELESS_HANDLE    0x01
 
+/*---------------------------------------------------------*\
+| Device wide brightness, 0 to 1000.                         |
+\*---------------------------------------------------------*/
+#define CORSAIR_K65_PLUS_PROP_BRIGHTNESS    0x02
+#define CORSAIR_K65_PLUS_BRIGHTNESS_MAX     1000
+
 class CorsairPeripheralV2K65PlusController : public CorsairPeripheralV2Controller
 {
 public:
@@ -38,6 +44,8 @@ public:
     ~CorsairPeripheralV2K65PlusController();
 
     unsigned int                    GetKeyboardLayout()                             override;
+    bool                            SupportsBrightness()                            override;
+    void                            SetBrightness(uint8_t percent)                  override;
     void                            SetLedsDirect(std::vector<RGBColor *> colors)    override;
 
 private:

@@ -99,6 +99,26 @@ unsigned int CorsairPeripheralV2K65PlusController::GetKeyboardLayout()
     }
 }
 
+bool CorsairPeripheralV2K65PlusController::SupportsBrightness()
+{
+    return true;
+}
+
+/*---------------------------------------------------------*\
+| Hardware brightness runs 0 to 1000.  Anything above that   |
+|   is stored as 0 rather than clamped, so scale and bound   |
+|   the value here.                                          |
+\*---------------------------------------------------------*/
+void CorsairPeripheralV2K65PlusController::SetBrightness(uint8_t percent)
+{
+    if(percent > 100)
+    {
+        percent = 100;
+    }
+
+    SetProperty(CORSAIR_K65_PLUS_PROP_BRIGHTNESS, (uint16_t)(percent * 10));
+}
+
 void CorsairPeripheralV2K65PlusController::SetLedsDirect(std::vector<RGBColor *> colors)
 {
     if(handle_open)

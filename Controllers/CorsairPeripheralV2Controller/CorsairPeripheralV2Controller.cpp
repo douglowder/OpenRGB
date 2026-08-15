@@ -178,19 +178,17 @@ std::string CorsairPeripheralV2Controller::GetSerialString()
     return(StringUtils::wstring_to_string(serial_string));
 }
 
-void CorsairPeripheralV2Controller::SetRenderMode(corsair_v2_device_mode mode)
+void CorsairPeripheralV2Controller::SetProperty(uint8_t property, uint16_t value)
 {
     uint8_t buffer[CORSAIR_V2_WRITE_SIZE];
 
     memset(buffer, 0, CORSAIR_V2_WRITE_SIZE);
 
-    /*---------------------------------------------------------*\
-    | Set Mode                                                  |
-    \*---------------------------------------------------------*/
     buffer[1]   = write_cmd;
     buffer[2]   = CORSAIR_V2_CMD_SET;
-    buffer[3]   = CORSAIR_V2_VALUE_MODE;
-    buffer[5]   = mode;
+    buffer[3]   = property;
+    buffer[5]   = value & 0xFF;
+    buffer[6]   = (value >> 8) & 0xFF;
 
     hid_write(dev, buffer, CORSAIR_V2_WRITE_SIZE);
 
@@ -198,6 +196,20 @@ void CorsairPeripheralV2Controller::SetRenderMode(corsair_v2_device_mode mode)
     {
         hid_read_timeout(dev, buffer, CORSAIR_V2_WRITE_SIZE, CORSAIR_V2_TIMEOUT);
     }
+}
+
+void CorsairPeripheralV2Controller::SetRenderMode(corsair_v2_device_mode mode)
+{
+    SetProperty(CORSAIR_V2_VALUE_MODE, mode);
+}
+
+bool CorsairPeripheralV2Controller::SupportsBrightness()
+{
+    return false;
+}
+
+void CorsairPeripheralV2Controller::SetBrightness(uint8_t /*percent*/)
+{
 }
 
 void CorsairPeripheralV2Controller::LightingControl(uint8_t opt1)

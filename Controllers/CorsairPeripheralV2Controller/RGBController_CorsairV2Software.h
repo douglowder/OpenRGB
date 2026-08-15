@@ -34,10 +34,15 @@ public:
     void KeepaliveThread();
 
 private:
+    void ApplyBrightness();
+
+private:
     CorsairPeripheralV2Controller*          controller;
 
     RGBColor                                null_color              = 0;
     std::vector<RGBColor *>                 buffer_map;
+
+    int                                     last_brightness         = -1;
 
     std::thread*                            keepalive_thread;
     std::atomic<bool>                       keepalive_thread_run;

@@ -95,6 +95,15 @@ public:
 
     void                            SetRenderMode(corsair_v2_device_mode mode);
     void                            LightingControl(uint8_t opt1);
+
+    /*---------------------------------------------------------*\
+    | Device wide brightness is opt in.  Only devices that       |
+    |   answer the brightness property override these, so no     |
+    |   brightness control is offered for anything else.         |
+    \*---------------------------------------------------------*/
+    virtual bool                    SupportsBrightness();
+    virtual void                    SetBrightness(uint8_t percent);
+
     void                            SetLEDs(uint8_t *data, uint16_t data_size);
     void                            UpdateHWMode(uint16_t mode, corsair_v2_color color_mode, uint8_t speed,
                                                  uint8_t direction, uint8_t brightness, std::vector<RGBColor> colors);
@@ -104,6 +113,7 @@ public:
 protected:
     void                            ClearPacketBuffer();
     unsigned int                    GetAddress(uint8_t address);
+    void                            SetProperty(uint8_t property, uint16_t value);
     void                            SessionStart();
     unsigned char                   StartTransaction(uint8_t handle, uint16_t resource);
     void                            StopTransaction(uint8_t handle);

@@ -44,6 +44,19 @@ RGBController_CorsairV2SW::RGBController_CorsairV2SW(CorsairPeripheralV2Controll
     Direct.value                    = CORSAIR_V2_MODE_DIRECT;
     Direct.flags                    = MODE_FLAG_HAS_PER_LED_COLOR;
     Direct.color_mode               = MODE_COLORS_PER_LED;
+
+    /*-----------------------------------------------------*\
+    | Only devices that answer the brightness property get   |
+    | a brightness slider.                                   |
+    \*-----------------------------------------------------*/
+    if(controller->SupportsBrightness())
+    {
+        Direct.flags               |= MODE_FLAG_HAS_BRIGHTNESS;
+        Direct.brightness_min       = 0;
+        Direct.brightness_max       = 100;
+        Direct.brightness           = 100;
+    }
+
     modes.push_back(Direct);
 
     SetupZones();
@@ -204,7 +217,28 @@ void RGBController_CorsairV2SW::DeviceUpdateLEDs()
 {
     last_update_time = std::chrono::steady_clock::now();
 
+    ApplyBrightness();
     controller->SetLedsDirect(buffer_map);
+}
+
+/*---------------------------------------------------------*\
+| Brightness is a device wide property rather than part of   |
+|   the colour frame, so it is only resent when it changes.  |
+\*---------------------------------------------------------*/
+void RGBController_CorsairV2SW::ApplyBrightness()
+{
+    if(!controller->SupportsBrightness())
+    {
+        return;
+    }
+
+    int brightness = (int)modes[active_mode].brightness;
+
+    if(brightness != last_brightness)
+    {
+        last_brightness = brightness;
+        controller->SetBrightness((uint8_t)brightness);
+    }
 }
 
 void RGBController_CorsairV2SW::DeviceUpdateZoneLEDs(int /*zone*/)
@@ -219,7 +253,7 @@ void RGBController_CorsairV2SW::DeviceUpdateSingleLED(int /*led*/)
 
 void RGBController_CorsairV2SW::DeviceUpdateMode()
 {
-
+    ApplyBrightness();
 }
 
 void RGBController_CorsairV2SW::KeepaliveThread()

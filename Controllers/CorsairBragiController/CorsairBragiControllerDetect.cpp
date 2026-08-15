@@ -1,14 +1,17 @@
 /*---------------------------------------------------------*\
 | CorsairBragiControllerDetect.cpp                          |
 |                                                           |
-| Detector for Corsair K65 Plus Wireless keyboard           |
+|   Detector for Corsair K65 Plus Wireless keyboard         |
 |                                                           |
-| This file is part of the OpenRGB project                  |
-| SPDX-License-Identifier: GPL-2.0-or-later                 |
+|   ToastKiste21                                28 Feb 2026 |
+|                                                           |
+|   This file is part of the OpenRGB project                |
+|   SPDX-License-Identifier: GPL-2.0-or-later               |
 \*---------------------------------------------------------*/
 
 #include <hidapi.h>
-#include "Detector.h"
+#include "DetectionManager.h"
+#include "RGBController.h"
 #include "CorsairBragiDevices.h"
 #include "RGBController_CorsairBragi.h"
 
@@ -17,24 +20,30 @@
 /*-----------------------------------------------------------------------------------------------------*\
 | K65 Plus uses interface 1, no HID report IDs (65-byte packets with 0x00 prefix).                       |
 \*-----------------------------------------------------------------------------------------------------*/
-void DetectCorsairBragiControllers(hid_device_info* info, const std::string& name)
+DetectedControllers DetectCorsairBragiControllers(hid_device_info* info, const std::string& name)
 {
-    hid_device* dev = hid_open_path(info->path);
+    DetectedControllers detected_controllers;
+    hid_device*         dev;
+
+    dev = hid_open_path(info->path);
 
     if(dev)
     {
-        CorsairBragiController*     controller      = new CorsairBragiController(dev, info->path, name);
+        CorsairBragiController* controller = new CorsairBragiController(dev, info->path, name);
 
         if(controller->IsReady())
         {
-            RGBController_CorsairBragi* rgb_controller  = new RGBController_CorsairBragi(controller);
-            ResourceManager::get()->RegisterRGBController(rgb_controller);
+            RGBController_CorsairBragi* rgb_controller = new RGBController_CorsairBragi(controller);
+
+            detected_controllers.push_back(rgb_controller);
         }
         else
         {
             delete controller;
         }
     }
+
+    return(detected_controllers);
 }
 
 /*-----------------------------------------------------------------------------------------------------*\

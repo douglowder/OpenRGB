@@ -1,10 +1,12 @@
 /*---------------------------------------------------------*\
 | CorsairBragiDevices.h                                     |
 |                                                           |
-| Device list for Corsair Bragi protocol keyboards          |
+|   Device list for Corsair Bragi protocol keyboards        |
 |                                                           |
-| This file is part of the OpenRGB project                  |
-| SPDX-License-Identifier: GPL-2.0-or-later                 |
+|   ToastKiste21                                28 Feb 2026 |
+|                                                           |
+|   This file is part of the OpenRGB project                |
+|   SPDX-License-Identifier: GPL-2.0-or-later               |
 \*---------------------------------------------------------*/
 
 #pragma once

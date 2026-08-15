@@ -1,10 +1,12 @@
 /*---------------------------------------------------------*\
 | RGBController_CorsairBragi.h                              |
 |                                                           |
-| RGBController for Corsair K65 Plus Wireless keyboard      |
+|   RGBController for Corsair K65 Plus Wireless keyboard    |
 |                                                           |
-| This file is part of the OpenRGB project                  |
-| SPDX-License-Identifier: GPL-2.0-or-later                 |
+|   ToastKiste21                                28 Feb 2026 |
+|                                                           |
+|   This file is part of the OpenRGB project                |
+|   SPDX-License-Identifier: GPL-2.0-or-later               |
 \*---------------------------------------------------------*/
 
 #pragma once
@@ -19,11 +21,10 @@ public:
     ~RGBController_CorsairBragi();
 
     void SetupZones();
-    void ResizeZone(int zone, int new_size);
 
     void DeviceUpdateLEDs();
-    void UpdateZoneLEDs(int zone);
-    void UpdateSingleLED(int led);
+    void DeviceUpdateZoneLEDs(int zone);
+    void DeviceUpdateSingleLED(int led);
 
     void DeviceUpdateMode();
     void KeepaliveThread();

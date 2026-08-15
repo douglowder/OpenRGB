@@ -4,6 +4,8 @@
 |   Driver for Corsair K65 Plus Wireless keyboard           |
 |   (Bragi protocol over Slipstream dongle or USB)          |
 |                                                           |
+|   ToastKiste21                                28 Feb 2026 |
+|                                                           |
 |   This file is part of the OpenRGB project                |
 |   SPDX-License-Identifier: GPL-2.0-or-later               |
 \*---------------------------------------------------------*/
@@ -499,10 +501,10 @@ void CorsairBragiController::DetectSubdevice()
 | SetLedsDirect                                              |
 |                                                           |
 | Wired:    per-key RGB via persistent ALT_LIGHTING handle   |
-|           (PacketIndex format, 373 bytes).                  |
+|           (PacketIndex format, 373 bytes).                 |
 | Wireless: solid color via resource 0x6D60 with             |
-|           open/write/close + indication cycle.              |
-|           Per-key not supported by wireless firmware.       |
+|           open/write/close + indication cycle.             |
+|           Per-key not supported by wireless firmware.      |
 \*---------------------------------------------------------*/
 
 void CorsairBragiController::SetLedsDirect(std::vector<RGBColor *> colors)

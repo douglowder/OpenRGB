@@ -1,10 +1,12 @@
 /*---------------------------------------------------------*\
 | RGBController_CorsairBragi.cpp                            |
 |                                                           |
-| RGBController for Corsair K65 Plus Wireless keyboard      |
+|   RGBController for Corsair K65 Plus Wireless keyboard    |
 |                                                           |
-| This file is part of the OpenRGB project                  |
-| SPDX-License-Identifier: GPL-2.0-or-later                 |
+|   ToastKiste21                                28 Feb 2026 |
+|                                                           |
+|   This file is part of the OpenRGB project                |
+|   SPDX-License-Identifier: GPL-2.0-or-later               |
 \*---------------------------------------------------------*/
 
 #include "LogManager.h"
@@ -60,17 +62,14 @@ RGBController_CorsairBragi::RGBController_CorsairBragi(CorsairBragiController *c
 
 RGBController_CorsairBragi::~RGBController_CorsairBragi()
 {
+    Shutdown();
+
+    /*-----------------------------------------------------*\
+    | Close keepalive thread                                |
+    \*-----------------------------------------------------*/
     keepalive_thread_run = false;
     keepalive_thread->join();
     delete keepalive_thread;
-
-    for(unsigned int zone_index = 0; zone_index < zones.size(); zone_index++)
-    {
-        if(zones[zone_index].type == ZONE_TYPE_MATRIX)
-        {
-            delete zones[zone_index].matrix_map;
-        }
-    }
 
     delete controller;
 }
@@ -118,21 +117,17 @@ void RGBController_CorsairBragi::SetupZones()
         {
             KeyboardLayoutManager new_kb(new_layout, corsair->layout_new->base_size, corsair->layout_new->key_values);
 
-            matrix_map_type * new_map   = new matrix_map_type;
-            new_zone.matrix_map         = new_map;
-
-            new_map->height             = corsair->zones[i]->rows;
-            new_map->width              = corsair->zones[i]->cols;
-            new_map->map                = new unsigned int[new_map->height * new_map->width];
-
             if(corsair->layout_new->base_size != KEYBOARD_SIZE_EMPTY)
             {
                 keyboard_keymap_overlay_values* temp    = corsair->layout_new;
                 new_kb.ChangeKeys(*temp);
 
-                new_kb.GetKeyMap(new_map->map, KEYBOARD_MAP_FILL_TYPE_COUNT, new_map->height, new_map->width);
+                new_zone.matrix_map                     = new_kb.GetKeyMap(KEYBOARD_MAP_FILL_TYPE_COUNT, corsair->zones[i]->rows, corsair->zones[i]->cols);
 
                 new_zone.leds_count                     = new_kb.GetKeyCount();
+
+                LOG_DEBUG("[%s] Created KB matrix with %d rows and %d columns containing %d keys",
+                          controller->GetName().c_str(), new_kb.GetRowCount(), new_kb.GetColumnCount(), new_zone.leds_count);
 
                 for(unsigned int led_idx = 0; led_idx < new_zone.leds_count; led_idx++)
                 {
@@ -150,7 +145,6 @@ void RGBController_CorsairBragi::SetupZones()
         else
         {
             new_zone.leds_count             = corsair->zones[i]->rows * corsair->zones[i]->cols;
-            new_zone.matrix_map             = NULL;
 
             for(size_t led_idx = 0; led_idx < new_zone.leds_count; led_idx++)
             {
@@ -188,10 +182,6 @@ void RGBController_CorsairBragi::SetupZones()
     }
 }
 
-void RGBController_CorsairBragi::ResizeZone(int /*zone*/, int /*new_size*/)
-{
-}
-
 void RGBController_CorsairBragi::DeviceUpdateLEDs()
 {
     last_update_time = std::chrono::steady_clock::now();
@@ -201,12 +191,12 @@ void RGBController_CorsairBragi::DeviceUpdateLEDs()
     controller->SetLedsDirect(buffer_map);
 }
 
-void RGBController_CorsairBragi::UpdateZoneLEDs(int /*zone*/)
+void RGBController_CorsairBragi::DeviceUpdateZoneLEDs(int /*zone*/)
 {
     controller->SetLedsDirect(buffer_map);
 }
 
-void RGBController_CorsairBragi::UpdateSingleLED(int /*led*/)
+void RGBController_CorsairBragi::DeviceUpdateSingleLED(int /*led*/)
 {
     controller->SetLedsDirect(buffer_map);
 }

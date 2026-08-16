@@ -104,6 +104,14 @@ public:
     virtual bool                    SupportsBrightness();
     virtual void                    SetBrightness(uint8_t percent);
 
+    /*---------------------------------------------------------*\
+    | Saving to the device is opt in for the same reason.  A     |
+    |   device that supports it stores a colour that the         |
+    |   hardware replays on its own, with no host attached.      |
+    \*---------------------------------------------------------*/
+    virtual bool                    SupportsSave();
+    virtual void                    SaveLedsDirect(std::vector<RGBColor *> colors);
+
     void                            SetLEDs(uint8_t *data, uint16_t data_size);
     void                            UpdateHWMode(uint16_t mode, corsair_v2_color color_mode, uint8_t speed,
                                                  uint8_t direction, uint8_t brightness, std::vector<RGBColor> colors);

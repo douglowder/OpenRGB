@@ -30,13 +30,13 @@ public:
     void DeviceUpdateSingleLED(int led);
 
     void DeviceUpdateMode();
+    void DeviceSaveMode();
 
     void KeepaliveThread();
 
-private:
+protected:
     void ApplyBrightness();
 
-private:
     CorsairPeripheralV2Controller*          controller;
 
     RGBColor                                null_color              = 0;

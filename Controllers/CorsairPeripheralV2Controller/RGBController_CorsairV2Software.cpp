@@ -22,7 +22,7 @@ using namespace std::chrono_literals;
     @save :x:
     @direct :white_check_mark:
     @effects :x:
-    @detectors DetectCorsairV2SoftwareControllers, DetectCorsairV2K65PlusControllers
+    @detectors DetectCorsairV2SoftwareControllers
     @comment
 \*-------------------------------------------------------------------*/
 
@@ -55,6 +55,15 @@ RGBController_CorsairV2SW::RGBController_CorsairV2SW(CorsairPeripheralV2Controll
         Direct.brightness_min       = 0;
         Direct.brightness_max       = 100;
         Direct.brightness           = 100;
+    }
+
+    /*-----------------------------------------------------*\
+    | Likewise, only devices that can store a colour for the |
+    | hardware to replay offer a save.                       |
+    \*-----------------------------------------------------*/
+    if(controller->SupportsSave())
+    {
+        Direct.flags               |= MODE_FLAG_MANUAL_SAVE;
     }
 
     modes.push_back(Direct);
@@ -254,6 +263,12 @@ void RGBController_CorsairV2SW::DeviceUpdateSingleLED(int /*led*/)
 void RGBController_CorsairV2SW::DeviceUpdateMode()
 {
     ApplyBrightness();
+}
+
+void RGBController_CorsairV2SW::DeviceSaveMode()
+{
+    ApplyBrightness();
+    controller->SaveLedsDirect(buffer_map);
 }
 
 void RGBController_CorsairV2SW::KeepaliveThread()

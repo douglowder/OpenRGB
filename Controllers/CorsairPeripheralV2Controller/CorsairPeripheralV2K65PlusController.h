@@ -45,13 +45,17 @@ public:
 
     unsigned int                    GetKeyboardLayout()                             override;
     bool                            SupportsBrightness()                            override;
+    bool                            SupportsSave()                                  override;
+    void                            SaveLedsDirect(std::vector<RGBColor *> colors)   override;
     void                            SetBrightness(uint8_t percent)                  override;
     void                            SetLedsDirect(std::vector<RGBColor *> colors)    override;
 
 private:
     void                            SetLedsDirectWired(std::vector<RGBColor *>& colors);
-    void                            SetLedsDirectWireless(std::vector<RGBColor *>& colors);
+    void                            WriteStaticEffect(RGBColor color);
     void                            WriteIndication(uint16_t resource);
+    RGBColor                        FirstLitColor(std::vector<RGBColor *>& colors);
+    void                            OpenLightingHandle();
 
     bool                            handle_open     = false;
 };

@@ -56,15 +56,17 @@ CorsairPeripheralV2K65PlusController::CorsairPeripheralV2K65PlusController(hid_d
     if(write_cmd == CORSAIR_V2_WRITE_WIRED_ID)
     {
         light_ctrl  = CORSAIR_V2_LIGHT_CTRL2;
+        OpenLightingHandle();
+    }
+}
 
-        if(StartTransaction(0, light_ctrl) == 0)
-        {
-            handle_open = true;
-        }
-        else
-        {
-            LOG_ERROR("[%s] Could not open lighting endpoint %02X", device_name.c_str(), light_ctrl);
-        }
+void CorsairPeripheralV2K65PlusController::OpenLightingHandle()
+{
+    handle_open = (StartTransaction(0, light_ctrl) == 0);
+
+    if(!handle_open)
+    {
+        LOG_ERROR("[%s] Could not open lighting endpoint %02X", device_name.c_str(), light_ctrl);
     }
 }
 
@@ -119,6 +121,36 @@ void CorsairPeripheralV2K65PlusController::SetBrightness(uint8_t percent)
     SetProperty(CORSAIR_K65_PLUS_PROP_BRIGHTNESS, (uint16_t)(percent * 10));
 }
 
+bool CorsairPeripheralV2K65PlusController::SupportsSave()
+{
+    return true;
+}
+
+/*---------------------------------------------------------*\
+| Stores one colour that the keyboard replays on its own,    |
+|   with no host attached and over any transport.            |
+|                                                           |
+| The stored effect holds a single colour group, so a per    |
+|   key layout cannot be saved.  Hardware mode is what       |
+|   commits the write, so the mode is cycled through it and  |
+|   back, and the direct lighting handle is reopened so      |
+|   live control carries on after the save.                  |
+\*---------------------------------------------------------*/
+void CorsairPeripheralV2K65PlusController::SaveLedsDirect(std::vector<RGBColor *> colors)
+{
+    WriteStaticEffect(FirstLitColor(colors));
+
+    SetRenderMode(CORSAIR_V2_MODE_HW);
+    SetRenderMode(CORSAIR_V2_MODE_SW);
+
+    if(handle_open)
+    {
+        OpenLightingHandle();
+    }
+
+    SetLedsDirect(colors);
+}
+
 void CorsairPeripheralV2K65PlusController::SetLedsDirect(std::vector<RGBColor *> colors)
 {
     if(handle_open)
@@ -127,7 +159,7 @@ void CorsairPeripheralV2K65PlusController::SetLedsDirect(std::vector<RGBColor *>
     }
     else
     {
-        SetLedsDirectWireless(colors);
+        WriteStaticEffect(FirstLitColor(colors));
     }
 }
 
@@ -182,33 +214,41 @@ void CorsairPeripheralV2K65PlusController::SetLedsDirectWired(std::vector<RGBCol
 }
 
 /*---------------------------------------------------------*\
-| The wireless firmware only renders the first colour group  |
-|   of the frame, so the whole keyboard takes one colour.    |
+| The stored effect carries a single colour group, so the    |
+|   first lit key decides the colour for the whole board.    |
 \*---------------------------------------------------------*/
-void CorsairPeripheralV2K65PlusController::SetLedsDirectWireless(std::vector<RGBColor *>& colors)
+RGBColor CorsairPeripheralV2K65PlusController::FirstLitColor(std::vector<RGBColor *>& colors)
 {
-    RGBColor solid          = 0;
-
     for(size_t i = 0; i < colors.size(); i++)
     {
         if(*colors[i] != 0)
         {
-            solid           = *colors[i];
-            break;
+            return *colors[i];
         }
     }
 
+    return 0;
+}
+
+/*---------------------------------------------------------*\
+| Writes a static effect descriptor to the lighting          |
+|   resource.  In software mode this renders immediately,    |
+|   which is all the wireless firmware supports.  The same   |
+|   write is what a save stores for the hardware to replay.  |
+\*---------------------------------------------------------*/
+void CorsairPeripheralV2K65PlusController::WriteStaticEffect(RGBColor color)
+{
     uint16_t             data_size  = 11 + k65_plus_num_indices;
     std::vector<uint8_t> payload(data_size, 0);
 
-    payload[0]              = 0x7E;                     /* header flags                 */
-    payload[1]              = 0x20;
+    payload[0]              = CORSAIR_V2_MODE_STATIC & 0xFF;
+    payload[1]              = CORSAIR_V2_MODE_STATIC >> 8;
     payload[2]              = 0x01;                     /* effect type, static          */
     payload[6]              = 0x01;                     /* one colour group             */
     payload[7]              = 0xFF;                     /* colours are ABGR ordered     */
-    payload[8]              = RGBGetBValue(solid);
-    payload[9]              = RGBGetGValue(solid);
-    payload[10]             = RGBGetRValue(solid);
+    payload[8]              = RGBGetBValue(color);
+    payload[9]              = RGBGetGValue(color);
+    payload[10]             = RGBGetRValue(color);
 
     memcpy(&payload[11], k65_plus_led_indices, k65_plus_num_indices);
 
@@ -219,6 +259,7 @@ void CorsairPeripheralV2K65PlusController::SetLedsDirectWireless(std::vector<RGB
 
         if(StartTransaction(CORSAIR_K65_PLUS_WIRELESS_HANDLE, CORSAIR_K65_PLUS_RES_LIGHTING) != 0)
         {
+            LOG_ERROR("[%s] Could not open lighting resource %04X", device_name.c_str(), CORSAIR_K65_PLUS_RES_LIGHTING);
             return;
         }
     }

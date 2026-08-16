@@ -20,6 +20,7 @@
 #include "CorsairPeripheralV2K65PlusController.h"
 #include "RGBController_CorsairV2Hardware.h"
 #include "RGBController_CorsairV2Software.h"
+#include "RGBController_CorsairV2K65Plus.h"
 
 #define CORSAIR_PERIPHERAL_CONTROLLER_NAME "Corsair V2 Peripheral"
 
@@ -74,7 +75,7 @@ DetectedControllers DetectCorsairV2K65PlusControllers(hid_device_info* info, con
     if(dev)
     {
         CorsairPeripheralV2K65PlusController*   controller      = new CorsairPeripheralV2K65PlusController(dev, info->path, name);
-        RGBController_CorsairV2SW*              rgb_controller  = new RGBController_CorsairV2SW(controller);
+        RGBController_CorsairV2K65Plus*         rgb_controller  = new RGBController_CorsairV2K65Plus(controller);
 
         detected_controllers.push_back(rgb_controller);
     }

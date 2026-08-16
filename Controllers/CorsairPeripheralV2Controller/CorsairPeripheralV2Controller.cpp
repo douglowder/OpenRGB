@@ -212,6 +212,15 @@ void CorsairPeripheralV2Controller::SetBrightness(uint8_t /*percent*/)
 {
 }
 
+bool CorsairPeripheralV2Controller::SupportsSave()
+{
+    return false;
+}
+
+void CorsairPeripheralV2Controller::SaveLedsDirect(std::vector<RGBColor *> /*colors*/)
+{
+}
+
 void CorsairPeripheralV2Controller::LightingControl(uint8_t opt1)
 {
     uint8_t buffer[CORSAIR_V2_WRITE_SIZE];

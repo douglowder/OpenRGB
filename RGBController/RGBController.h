@@ -326,6 +326,12 @@ private:
     bool                                SignalShutdown;
 
     /*-----------------------------------------------------*\
+    | Blocks until no callback is running.  Returns at once |
+    | when called from inside a callback on this thread.    |
+    \*-----------------------------------------------------*/
+    void                                WaitForSignalCalls();
+
+    /*-----------------------------------------------------*\
     | Private path used internally by DetectionManager      |
     | for HID hotplug path tracking                         |
     \*-----------------------------------------------------*/

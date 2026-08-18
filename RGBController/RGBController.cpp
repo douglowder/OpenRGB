@@ -1819,6 +1819,27 @@ void RGBController::SetDeviceSpecificZoneConfiguration(int zone, nlohmann::json 
 /*---------------------------------------------------------*\
 | Update Callback Functions                                 |
 \*---------------------------------------------------------*/
+
+/*---------------------------------------------------------*\
+| Depth of callback invocation on the current thread.       |
+|                                                           |
+|   A callback that unregisters itself, or clears the       |
+|   callback list, must not wait for callbacks to finish -  |
+|   it is one of them, so it would wait on itself.  This    |
+|   has to be per thread: an unrelated thread unregistering |
+|   at the same moment does need to wait.                   |
+\*---------------------------------------------------------*/
+static thread_local unsigned int signal_callback_depth = 0;
+
+namespace
+{
+    class SignalDepthGuard
+    {
+    public:
+        SignalDepthGuard()  { signal_callback_depth++; }
+        ~SignalDepthGuard() { signal_callback_depth--; }
+    };
+}
 void RGBController::RegisterUpdateCallback(RGBControllerCallback new_callback, void * new_callback_arg)
 {
     UpdateMutex.lock();
@@ -1854,22 +1875,7 @@ void RGBController::UnregisterUpdateCallback(void * callback_arg)
     }
     UpdateMutex.unlock();
 
-    /*-----------------------------------------------------*\
-    | If this is executing from within any controller's     |
-    | callback, return immediately rather than waiting for  |
-    | callback completion to avoid deadlock.                |
-    \*-----------------------------------------------------*/
-    //if(SignalCalls != 0)
-    //{
-    //    return;
-    //}
-
-    /*-----------------------------------------------------*\
-    | Otherwise, wait for all currently active callbacks to |
-    | complete before returning                             |
-    \*-----------------------------------------------------*/
-    //std::unique_lock<std::mutex> wait_lock(SignalMutex);
-    //SignalCallsDone.wait(wait_lock, [this]{ return SignalCalls == 0; });
+    WaitForSignalCalls();
 }
 
 void RGBController::ClearCallbacks()
@@ -1879,22 +1885,7 @@ void RGBController::ClearCallbacks()
     UpdateCallbackArgs.clear();
     UpdateMutex.unlock();
 
-    /*-----------------------------------------------------*\
-    | If this is executing from within any controller's     |
-    | callback, return immediately rather than waiting for  |
-    | callback completion to avoid deadlock.                |
-    \*-----------------------------------------------------*/
-    //if(SignalCalls != 0)
-    //{
-    //    return;
-    //}
-
-    /*-----------------------------------------------------*\
-    | Otherwise, wait for all currently active callbacks to |
-    | complete before returning                             |
-    \*-----------------------------------------------------*/
-    //std::unique_lock<std::mutex> wait_lock(SignalMutex);
-    //SignalCallsDone.wait(wait_lock, [this]{ return SignalCalls == 0; });
+    WaitForSignalCalls();
 }
 
 void RGBController::SignalUpdate(unsigned int update_reason)
@@ -1903,59 +1894,74 @@ void RGBController::SignalUpdate(unsigned int update_reason)
     std::vector<void *>                 callback_args;
 
     /*-----------------------------------------------------*\
-    | Lock the update mutex while obtaining a copy of the   |
-    | callbacks, but release it before actually calling     |
-    | them so that any call to Register/Unregister from     |
-    | within the callback doesn't deadlock.                 |
+    | Register this call before taking a copy of the        |
+    | callbacks, so that an unregister which starts after   |
+    | this point waits for this call to finish.  Do nothing |
+    | once the controller has been shut down.               |
+    \*-----------------------------------------------------*/
+    SignalMutex.lock();
+
+    if(SignalShutdown)
+    {
+        SignalMutex.unlock();
+        return;
+    }
+
+    SignalCalls++;
+    SignalMutex.unlock();
+
+    /*-----------------------------------------------------*\
+    | Copy the callbacks under the update mutex, then       |
+    | release it before calling them.  Holding it across    |
+    | the calls would deadlock any callback that registers  |
+    | or unregisters.                                       |
     \*-----------------------------------------------------*/
     UpdateMutex.lock();
-
-    /*-----------------------------------------------------*\
-    | Lock the signal mutex and increment the signal call   |
-    | count.  Return immediately if the controller has been |
-    | shut down.                                            |
-    \*-----------------------------------------------------*/
-    //SignalMutex.lock();
-    //if(SignalShutdown)
-    //{
-    //    UpdateMutex.unlock();
-    //    return;
-    //}
-    //SignalCalls++;
-    //SignalMutex.unlock();
-
-    /*-----------------------------------------------------*\
-    | Copy the list of callbacks and unlock the update      |
-    | mutex                                                 |
-    \*-----------------------------------------------------*/
     callbacks       = UpdateCallbacks;
     callback_args   = UpdateCallbackArgs;
-
-    //UpdateMutex.unlock();
+    UpdateMutex.unlock();
 
     /*-----------------------------------------------------*\
     | Invoke the copied callbacks                           |
     \*-----------------------------------------------------*/
-    for(unsigned int callback_idx = 0; callback_idx < callbacks.size(); callback_idx++)
     {
-        callbacks[callback_idx](callback_args[callback_idx], update_reason, this);
+        SignalDepthGuard depth_guard;
+
+        for(unsigned int callback_idx = 0; callback_idx < callbacks.size(); callback_idx++)
+        {
+            callbacks[callback_idx](callback_args[callback_idx], update_reason, this);
+        }
     }
 
-    UpdateMutex.unlock();
     /*-----------------------------------------------------*\
-    | Decrement the signal call count once callbacks have   |
-    | been called.  Notify anyone waiting on signal calls   |
-    | to be done.                                           |
+    | Notify anyone waiting for callbacks to finish         |
     \*-----------------------------------------------------*/
-    //SignalMutex.lock();
-    //SignalCalls--;
+    SignalMutex.lock();
+    SignalCalls--;
 
-    //if(SignalCalls == 0)
-    //{
-    //    SignalCallsDone.notify_all();
-    //}
+    if(SignalCalls == 0)
+    {
+        SignalCallsDone.notify_all();
+    }
 
-    //SignalMutex.unlock();
+    SignalMutex.unlock();
+}
+
+/*---------------------------------------------------------*\
+| Wait until no callback is running.                        |
+|                                                           |
+|   Returns immediately when called from inside a callback  |
+|   on this thread, which would otherwise wait on itself.   |
+\*---------------------------------------------------------*/
+void RGBController::WaitForSignalCalls()
+{
+    if(signal_callback_depth > 0)
+    {
+        return;
+    }
+
+    std::unique_lock<std::mutex> wait_lock(SignalMutex);
+    SignalCallsDone.wait(wait_lock, [this]{ return SignalCalls == 0; });
 }
 
 /*---------------------------------------------------------*\
@@ -1985,10 +1991,12 @@ void RGBController::Shutdown()
     UpdateMutex.unlock();
 
     /*-----------------------------------------------------*\
-    | Wait for any remaining signal calls to complete       |
+    | Wait for any remaining signal calls to complete.      |
+    |                                                       |
+    |   SignalShutdown above stops new ones from starting,  |
+    |   so this only waits for calls already in flight.     |
     \*-----------------------------------------------------*/
-    std::unique_lock<std::mutex> wait_lock(SignalMutex);
-    SignalCallsDone.wait(wait_lock, [this]{ return SignalCalls == 0; });
+    WaitForSignalCalls();
 }
 
 void RGBController::UpdateLEDs()

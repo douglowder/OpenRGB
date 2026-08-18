@@ -3790,8 +3790,17 @@ void NetworkServer::SendReply_PluginList(NetworkClientInfo* client_info)
 
     /*---------------------------------------------------------*\
     | Calculate data size                                       |
+    |                                                           |
+    | There is no plugin manager when no GUI is running, so     |
+    |   report an empty plugin list rather than dereferencing   |
+    |   a null pointer.                                         |
     \*---------------------------------------------------------*/
-    unsigned short num_plugins = (unsigned short)plugin_manager->GetPluginCount();
+    unsigned short num_plugins = 0;
+
+    if(plugin_manager != NULL)
+    {
+        num_plugins = (unsigned short)plugin_manager->GetPluginCount();
+    }
 
     data_size += sizeof(data_size);
     data_size += sizeof(num_plugins);

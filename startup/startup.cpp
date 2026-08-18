@@ -141,24 +141,10 @@ int startup(int argc, char* argv[], unsigned int ret_flags)
     else
     {
         /*-------------------------------------------------*\
-        | If no GUI is needed, we let the background        |
-        | threads run as long as they need, but we need to  |
-        | AT LEAST wait for initialization to finish        |
+        | If no GUI is needed, hand off to the headless     |
+        | path, which is shared with the no-Qt build        |
         \*-------------------------------------------------*/
-        ResourceManager::get()->WaitForInitialization();
-
-        if(ret_flags & RET_FLAG_START_SERVER)
-        {
-            NetworkServer* server = ResourceManager::get()->GetServer();
-            if(server)
-            {
-                exitval = !server->GetOnline();
-            }
-            else
-            {
-                exitval = EXIT_FAILURE;
-            }
-        }
+        exitval = startup_headless(ret_flags);
     }
 
     return(exitval);

@@ -171,6 +171,7 @@ HEADERS +=                                                                      
     NetworkClient.h                                                                             \
     NetworkProtocol.h                                                                           \
     NetworkServer.h                                                                             \
+    OpenRGBPluginAPIInterface.h                                                                 \
     OpenRGBPluginInterface.h                                                                    \
     PluginManager.h                                                                             \
     ProfileManager.h                                                                            \
@@ -197,6 +198,7 @@ HEADERS +=                                                                      
     SuspendResume/SuspendResume.h                                                               \
     AutoStart/AutoStart.h                                                                       \
     KeyboardLayoutManager/KeyboardLayoutManager.h                                               \
+    RGBController/hsv.h                                                                         \
     RGBController/RGBController.h                                                               \
     RGBController/RGBController_Dummy.h                                                         \
     RGBController/RGBControllerKeyNames.h                                                       \
@@ -237,6 +239,7 @@ SOURCES +=                                                                      
     dependencies/hueplusplus-1.2.0/src/Utils.cpp                                                \
     dependencies/hueplusplus-1.2.0/src/ZLLSensors.cpp                                           \
     startup/startup.cpp                                                                         \
+    startup/startup_headless.cpp                                                                \
     cli.cpp                                                                                     \
     DetectionManager.cpp                                                                        \
     dmiinfo/dmiinfo.cpp                                                                         \
@@ -266,6 +269,7 @@ SOURCES +=                                                                      
     StringUtils.cpp                                                                             \
     AutoStart/AutoStart.cpp                                                                     \
     KeyboardLayoutManager/KeyboardLayoutManager.cpp                                             \
+    RGBController/hsv.cpp                                                                       \
     RGBController/RGBController.cpp                                                             \
     RGBController/RGBController_Dummy.cpp                                                       \
     RGBController/RGBControllerKeyNames.cpp                                                     \

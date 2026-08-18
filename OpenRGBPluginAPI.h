@@ -12,7 +12,7 @@
 #pragma once
 
 #include "LogManager.h"
-#include "OpenRGBPluginInterface.h"
+#include "OpenRGBPluginAPIInterface.h"
 #include "PluginManagerInterface.h"
 #include "ProfileManager.h"
 #include "ResourceManager.h"

@@ -166,16 +166,20 @@ contains(QMAKE_PLATFORM, linux) {
     #-------------------------------------------------------------------------------------------#
     packagesExist(hidapi-hotplug-hidraw) {
         PKGCONFIG += hidapi-hotplug-hidraw
+        OPENRGB_HIDAPI_PKG = hidapi-hotplug-hidraw
         DEFINES   += HID_HOTPLUG_ENABLED=1
         HID_HOTPLUG_ENABLED = "true"
     } else {
         packagesExist(hidapi-hidraw) {
             PKGCONFIG += hidapi-hidraw
+            OPENRGB_HIDAPI_PKG = hidapi-hidraw
         } else {
             packagesExist(hidapi-libusb) {
                 PKGCONFIG += hidapi-libusb
+                OPENRGB_HIDAPI_PKG = hidapi-libusb
             } else {
                 PKGCONFIG += hidapi
+                OPENRGB_HIDAPI_PKG = hidapi
             }
         }
     }
@@ -209,11 +213,14 @@ contains(QMAKE_PLATFORM, freebsd) {
     #-------------------------------------------------------------------------------------------#
     packagesExist(hidapi-hidraw) {
         PKGCONFIG += hidapi-hidraw
+        OPENRGB_HIDAPI_PKG = hidapi-hidraw
     } else {
         packagesExist(hidapi-libusb) {
             PKGCONFIG += hidapi-libusb
+            OPENRGB_HIDAPI_PKG = hidapi-libusb
         } else {
             PKGCONFIG += hidapi
+            OPENRGB_HIDAPI_PKG = hidapi
         }
     }
 }
@@ -240,11 +247,13 @@ macx {
     #-------------------------------------------------------------------------------------------#
     packagesExist(hidapi-hotplug) {
         PKGCONFIG += hidapi-hotplug
+        OPENRGB_HIDAPI_PKG = hidapi-hotplug
         DEFINES   += HID_HOTPLUG_ENABLED=1
         HID_HOTPLUG_ENABLED = "true"
 
     } else {
         PKGCONFIG += hidapi
+        OPENRGB_HIDAPI_PKG = hidapi
     }
 
     # Use mbedtls 3

@@ -18,6 +18,8 @@
 #include <condition_variable>
 #include <mutex>
 
+#include "i2c_smbus_info.h"
+
 typedef unsigned char   u8;
 typedef unsigned short  u16;
 typedef unsigned int    u32;
@@ -72,18 +74,6 @@ union i2c_smbus_data
 #define I2C_SMBUS_BLOCK_PROC_CALL   7           /* SMBus 2.0 */
 #define I2C_SMBUS_I2C_BLOCK_DATA    8
 
-typedef struct
-{
-    char device_name[512];
-
-    int port_id;
-    int pci_device;
-    int pci_vendor;
-    int pci_subsystem_device;
-    int pci_subsystem_vendor;
-
-    int bus_id;
-} i2c_smbus_info;
 
 class i2c_smbus_interface
 {

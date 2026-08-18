@@ -23,6 +23,7 @@
 #include "ResourceManager.h"
 #include "ProfileManager.h"
 #include "LogManager.h"
+#include "find_usb_serial_port.h"
 #include "serial_port.h"
 #include "SettingsManager.h"
 #include "StringUtils.h"

@@ -1,0 +1,19 @@
+prefix=$$PREFIX
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: openrgb
+Description: OpenRGB device control core, without a user interface
+Version: $$VERSION_NUM
+URL: https://openrgb.org
+
+# openrgb/internal is where the implementation headers live.  The umbrella
+# headers under openrgb/ include them unqualified, so both directories are
+# needed on the include path.
+# hidapi appears in the public headers: DetectionManager declares detector
+# callbacks that take hid_device_info*.
+Requires: $$OPENRGB_HIDAPI_PKG libusb-1.0
+
+Cflags: -I${includedir} -I${includedir}/openrgb/internal -std=c++17
+Libs: -L${libdir} -lopenrgb

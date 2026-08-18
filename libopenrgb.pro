@@ -73,3 +73,35 @@ unix:!macx:CONFIG(asan) {
     QMAKE_CXXFLAGS=-fsanitize=address
     QMAKE_LFLAGS=-fsanitize=address
 }
+
+#-----------------------------------------------------------------------------------------------#
+# Installation                                                                                  #
+#                                                                                               #
+#   Umbrella headers go to include/openrgb/ and the implementation headers they include go to   #
+#   include/openrgb/internal/, flattened, because every internal include is written unqualified. #
+#-----------------------------------------------------------------------------------------------#
+unix {
+    isEmpty(PREFIX) {
+        PREFIX = /usr
+    }
+
+    target.path                 = $$PREFIX/lib/
+
+    openrgb_public.path         = $$PREFIX/include/openrgb/
+    openrgb_public.files        = $$files($$OPENRGB_ROOT/include/openrgb/*.h)
+
+    openrgb_internal.path       = $$PREFIX/include/openrgb/internal/
+    openrgb_internal.files      = $$OPENRGB_INSTALL_HEADERS
+
+    openrgb_json.path           = $$PREFIX/include/openrgb/internal/nlohmann/
+    openrgb_json.files          = $$OPENRGB_ROOT/dependencies/json/nlohmann/json.hpp
+
+    openrgb_pc.input            = openrgb.pc.in
+    openrgb_pc.output           = $$OUT_PWD/openrgb.pc
+    QMAKE_SUBSTITUTES          += openrgb_pc
+
+    pkgconfig.path              = $$PREFIX/lib/pkgconfig/
+    pkgconfig.files             = $$OUT_PWD/openrgb.pc
+
+    INSTALLS += target openrgb_public openrgb_internal openrgb_json pkgconfig
+}

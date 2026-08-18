@@ -22,12 +22,20 @@
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
-#include "DetectionManager.h"
-#include "hidapi_wrapper.h"
-#include "i2c_smbus.h"
 #include "ResourceManagerCallback.h"
 #include "filesystem.h"
-#include "find_usb_serial_port.h"
+
+/*---------------------------------------------------------*\
+| Only the descriptions of a bus and a serial device are     |
+|   needed here.  Pulling in the full i2c_smbus, hidapi and  |
+|   serial port headers would push their platform headers,   |
+|   their u8/u16/u32/s32 typedefs, and their free functions  |
+|   onto everything that includes this file.                 |
+\*---------------------------------------------------------*/
+#include "i2c_smbus_info.h"
+#include "serial_device_info.h"
+
+class i2c_smbus_interface;
 
 using json = nlohmann::json;
 
@@ -37,6 +45,7 @@ class NetworkServer;
 class PluginManagerInterface;
 class ProfileManager;
 class RGBController;
+class RGBControllerInterface;
 class SettingsManager;
 
 typedef struct

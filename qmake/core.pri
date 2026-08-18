@@ -52,6 +52,8 @@ OPENRGB_CORE_HEADERS +=                                                         
     StringUtils.h                                                                               \
     AutoStart/AutoStart.h                                                                       \
     KeyboardLayoutManager/KeyboardLayoutManager.h                                               \
+    PluginManagerInterface.h  \
+    SPDAccessor/SPDCommon.h  \
     RGBController/hsv.h                                                                         \
     RGBController/RGBController.h                                                               \
     RGBController/RGBController_Dummy.h                                                         \
@@ -207,3 +209,23 @@ macx:contains(QMAKE_HOST.arch, x86_64) {
     scsiapi/scsiapi_macos.c                                                                     \
     super_io/super_io.cpp                                                                       \
 }
+
+#-----------------------------------------------------------------------------------------------#
+# Headers installed for third-party consumers                                                   #
+#                                                                                               #
+#   This is deliberately a separate list from OPENRGB_CORE_HEADERS.  That one exists so IDEs    #
+#   show the project's headers; this one has to be complete enough that an installed prefix     #
+#   actually compiles, which examples/minimal verifies.                                         #
+#-----------------------------------------------------------------------------------------------#
+OPENRGB_INSTALL_HEADERS +=                                                                      \
+    $$OPENRGB_CORE_HEADERS                                                                      \
+    RGBController/RGBControllerInterface.h                                                      \
+    RGBController/RGBController_Virtual.h                                                       \
+    i2c_smbus/i2c_smbus_info.h                                                                  \
+    serial_port/serial_device_info.h                                                            \
+    SPDAccessor/SPDAccessor.h                                                                   \
+    SPDAccessor/SPDDetector.h                                                                   \
+    SPDAccessor/SPDWrapper.h                                                                    \
+    KeyboardLayoutManager/KeyboardLayoutManager.h                                               \
+    PluginManagerInterface.h  \
+    SPDAccessor/SPDCommon.h  \

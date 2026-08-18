@@ -140,3 +140,12 @@ Makefile.gui
 Makefile.daemon
 .obj_daemon/
 openrgbd
+examples/minimal/list_devices
+openrgb.pc
+
+# macOS app bundle and generated Info.plist
+Info.plist
+OpenRGB.app/
+
+# the example ships its own Makefile
+!examples/minimal/Makefile

@@ -122,3 +122,18 @@ compile_commands.json
 
 # Generated i18n files
 *.qm
+
+# Split build intermediates and the core library
+.obj_lib/
+.obj_gui/
+.moc_gui/
+.qrc_gui/
+.ui_gui/
+libopenrgb.*.dylib
+libopenrgb.dylib
+libopenrgb.so*
+libopenrgb.*.so
+openrgb.dll
+openrgb.lib
+Makefile.lib
+Makefile.gui

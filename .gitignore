@@ -137,3 +137,6 @@ openrgb.dll
 openrgb.lib
 Makefile.lib
 Makefile.gui
+Makefile.daemon
+.obj_daemon/
+openrgbd

@@ -7,6 +7,7 @@
 #                                                                                               #
 #       libopenrgb.pro      the core: drivers, device model, managers, SDK.  No Qt.             #
 #       OpenRGB_gui.pro     the Qt application                                                  #
+#       openrgbd.pro        the daemon: a server with no user interface and no Qt               #
 #                                                                                               #
 #   The project fragments they share live under qmake/:                                         #
 #                                                                                               #
@@ -23,13 +24,16 @@
 TEMPLATE = subdirs
 CONFIG  += ordered
 
-lib.file    = libopenrgb.pro
-gui.file    = OpenRGB_gui.pro
-gui.depends = lib
+lib.file       = libopenrgb.pro
+gui.file       = OpenRGB_gui.pro
+gui.depends    = lib
+daemon.file    = openrgbd.pro
+daemon.depends = lib
 
 SUBDIRS  =                                                                                      \
     lib                                                                                         \
     gui                                                                                         \
+    daemon                                                                                      \
 
 #-----------------------------------------------------------------------------------------------#
 # Print build configuration                                                                     #

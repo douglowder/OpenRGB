@@ -9,6 +9,7 @@
 \*---------------------------------------------------------*/
 
 #include <chrono>
+#include <csignal>
 #include <thread>
 
 #include "cli.h"
@@ -26,16 +27,85 @@ io_connect_t macUSPCIO_driver_connection;
 using namespace std::chrono_literals;
 
 /*---------------------------------------------------------*\
-| WaitWhileServerOnline                                     |
-|                                                           |
-|   Wait while NetworkServer is online and return only when |
-|   it has shut down                                        |
+| How often the main thread checks whether it should stop.  |
+| A service manager sends SIGTERM and then waits, so this   |
+| is the delay it sees before shutdown begins.              |
 \*---------------------------------------------------------*/
-static void WaitWhileServerOnline(NetworkServer* srv)
+static const std::chrono::milliseconds SHUTDOWN_POLL_INTERVAL = 100ms;
+
+/*---------------------------------------------------------*\
+| Set by the signal handler, read by the main thread.  A    |
+| handler may only write a volatile sig_atomic_t, so the    |
+| signal number leaves through one of those instead of the  |
+| handler doing the work of shutting down itself.           |
+\*---------------------------------------------------------*/
+static volatile std::sig_atomic_t shutdown_signal = 0;
+
+/*---------------------------------------------------------*\
+| DaemonSignalHandler                                       |
+|                                                           |
+|   Records that shutdown was requested.  Nothing else      |
+|   happens here: closing sockets and running device        |
+|   destructors takes mutexes and writes log messages, and  |
+|   none of that is safe inside a signal handler.           |
+\*---------------------------------------------------------*/
+static void DaemonSignalHandler(int signal_number)
 {
-    while(srv->GetOnline())
+    /*-----------------------------------------------------*\
+    | Restore the default disposition so a second signal    |
+    | terminates on the spot.  Device detection holds the   |
+    | main thread for several seconds, and a daemon stuck   |
+    | there still has to be killable.                       |
+    \*-----------------------------------------------------*/
+    std::signal(signal_number, SIG_DFL);
+
+    shutdown_signal = signal_number;
+}
+
+/*---------------------------------------------------------*\
+| InstallSignalHandlers                                     |
+|                                                           |
+|   Takes over the signals a service manager or a terminal  |
+|   uses to stop a process.  Their default disposition      |
+|   terminates the daemon immediately, which skips the      |
+|   shutdown path below: clients are dropped mid packet and |
+|   device destructors never run, leaving hardware lit by   |
+|   whatever the last write set.                            |
+\*---------------------------------------------------------*/
+static void InstallSignalHandlers()
+{
+    std::signal(SIGINT,  DaemonSignalHandler);
+    std::signal(SIGTERM, DaemonSignalHandler);
+
+#ifndef _WIN32
+    /*-----------------------------------------------------*\
+    | SIGHUP arrives when the controlling terminal goes     |
+    | away.  Treat closing the terminal as a stop request   |
+    | rather than letting it kill the process outright.     |
+    \*-----------------------------------------------------*/
+    std::signal(SIGHUP,  DaemonSignalHandler);
+
+    /*-----------------------------------------------------*\
+    | A client that disappears mid send must not be able to |
+    | take the daemon down with it.  Every send() in the    |
+    | server passes MSG_NOSIGNAL, so this covers the writes |
+    | that do not, and any that a plugin makes.             |
+    \*-----------------------------------------------------*/
+    std::signal(SIGPIPE, SIG_IGN);
+#endif
+}
+
+/*---------------------------------------------------------*\
+| WaitForShutdown                                           |
+|                                                           |
+|   Returns once the server has gone offline or a signal    |
+|   has asked the daemon to stop                            |
+\*---------------------------------------------------------*/
+static void WaitForShutdown(NetworkServer* srv)
+{
+    while(shutdown_signal == 0 && srv->GetOnline())
     {
-        std::this_thread::sleep_for(1s);
+        std::this_thread::sleep_for(SHUTDOWN_POLL_INTERVAL);
     }
 }
 
@@ -47,6 +117,13 @@ static void WaitWhileServerOnline(NetworkServer* srv)
 \*---------------------------------------------------------*/
 int main(int argc, char* argv[])
 {
+    /*-----------------------------------------------------*\
+    | Install the handlers first.  A signal that arrives    |
+    | during detection is then remembered instead of        |
+    | killing the process, and acted on below.              |
+    \*-----------------------------------------------------*/
+    InstallSignalHandlers();
+
     /*-----------------------------------------------------*\
     | Mac x86/x64 only - Install SMBus Driver macUSPCIO     |
     \*-----------------------------------------------------*/
@@ -89,17 +166,34 @@ int main(int argc, char* argv[])
     \*-----------------------------------------------------*/
     int exitval = startup_headless(ret_flags);
 
-    /*-----------------------------------------------------*\
-    | Run until the server shuts down                       |
-    \*-----------------------------------------------------*/
+    NetworkServer* server = nullptr;
+
     if(ret_flags & RET_FLAG_START_SERVER)
     {
-        NetworkServer* server = ResourceManager::get()->GetServer();
+        server = ResourceManager::get()->GetServer();
+    }
 
-        if(server)
-        {
-            WaitWhileServerOnline(server);
-        }
+    /*-----------------------------------------------------*\
+    | Run until the server shuts down or a signal arrives   |
+    \*-----------------------------------------------------*/
+    if(server)
+    {
+        WaitForShutdown(server);
+    }
+
+    if(shutdown_signal != 0)
+    {
+        LOG_INFO("[openrgbd] Signal %d received, shutting down", (int)shutdown_signal);
+    }
+
+    /*-----------------------------------------------------*\
+    | Take the server down before the devices it serves, so |
+    | no request can arrive for a controller that is being  |
+    | destroyed.                                            |
+    \*-----------------------------------------------------*/
+    if(server)
+    {
+        server->StopServer();
     }
 
     /*-----------------------------------------------------*\

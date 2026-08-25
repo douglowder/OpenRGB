@@ -100,6 +100,8 @@ This project interacts directly with hardware using reverse engineered protocols
   * [OpenRGB-cppSDK - C++ client](https://github.com/Youda008/OpenRGB-cppSDK) (by Youda008)
   * [openrgb-rs2 - Rust client](https://github.com/Achtuur/openrgb-rs2) (by nicoulaj & Achtuur)
 
+* The SDK server can also run on its own, with no user interface and no Qt.  See the [openrgbd page](Documentation/Daemon.md) for its options, its signal handling, and how to run it under launchd or systemd.
+
 ## Applications Supporting OpenRGB SDK
 
 * While OpenRGB itself only provides control over the lighting effects built into hardware, several open source applications can use the OpenRGB SDK to provide synchronized lighting effects for your devices.

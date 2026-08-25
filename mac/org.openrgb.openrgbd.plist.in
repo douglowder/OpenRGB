@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    LaunchAgent for openrgbd, the OpenRGB SDK server.
+
+    This is a template.  scripts/openrgbd-launchd.sh fills in the paths and
+    installs the result; see Documentation/Daemon.md.
+
+    An agent rather than a daemon: openrgbd keeps its configuration and profiles
+    under the user's home directory, and reaching USB HID devices on macOS needs
+    the permissions of a logged-in user rather than root.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+        <string>org.openrgb.openrgbd</string>
+
+    <key>ProgramArguments</key>
+        <array>
+            <string>@OPENRGBD@</string>
+            <string>--server</string>
+@EXTRA_ARGUMENTS@
+        </array>
+
+    <key>RunAtLoad</key>
+        <true/>
+
+    <!--
+        Restart only after a failure.  A clean stop, which is what SIGTERM from
+        launchctl now produces, exits zero and stays stopped.
+    -->
+    <key>KeepAlive</key>
+        <dict>
+            <key>SuccessfulExit</key>
+                <false/>
+        </dict>
+
+    <!--
+        Wait between restarts so a device that fails detection every time does
+        not turn into a loop of USB resets.
+    -->
+    <key>ThrottleInterval</key>
+        <integer>10</integer>
+
+    <!--
+        A stop request that arrives while detection is running is honoured once
+        detection finishes, so allow more than the 20 second default before
+        launchd escalates to SIGKILL.
+    -->
+    <key>ExitTimeOut</key>
+        <integer>30</integer>
+
+    <key>WorkingDirectory</key>
+        <string>@HOME@</string>
+
+    <key>StandardOutPath</key>
+        <string>@LOG_DIR@/openrgbd.launchd.log</string>
+
+    <key>StandardErrorPath</key>
+        <string>@LOG_DIR@/openrgbd.launchd.log</string>
+</dict>
+</plist>

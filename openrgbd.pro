@@ -69,6 +69,12 @@ unix {
 
     target.path = $$PREFIX/bin/
     INSTALLS   += target
+
+    #-------------------------------------------------------------------------------------------#
+    # The build tree rpath above only helps a binary run from the build tree.  An installed     #
+    # daemon, which is what a service manager points at, finds libopenrgb here instead.         #
+    #-------------------------------------------------------------------------------------------#
+    QMAKE_RPATHDIR += $$PREFIX/lib
 }
 
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.15

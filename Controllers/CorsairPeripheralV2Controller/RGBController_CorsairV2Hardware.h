@@ -12,6 +12,9 @@
 
 #pragma once
 
+#include <condition_variable>
+#include <mutex>
+
 #include "RGBController.h"
 #include "CorsairPeripheralV2Controller.h"
 #include "CorsairPeripheralV2HardwareController.h"
@@ -39,6 +42,17 @@ private:
 
     std::thread*                            keepalive_thread;
     std::atomic<bool>                       keepalive_thread_run;
+
+    /*-----------------------------------------------------*\
+    | The keepalive thread waits on this instead of sleeping |
+    | outright, so clearing keepalive_thread_run wakes it at |
+    | once.  Without it the destructor's join() blocks for   |
+    | up to CORSAIR_V2_SLEEP_PERIOD, which is long enough to |
+    | stall a shutdown past a service manager's patience.    |
+    \*-----------------------------------------------------*/
+    std::condition_variable                 keepalive_thread_wake;
+    std::mutex                              keepalive_thread_mutex;
+
     std::chrono::time_point
         <std::chrono::steady_clock>         last_update_time;
 

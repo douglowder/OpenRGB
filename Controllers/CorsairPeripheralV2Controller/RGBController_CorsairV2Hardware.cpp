@@ -77,7 +77,11 @@ RGBController_CorsairV2HW::~RGBController_CorsairV2HW()
     /*-----------------------------------------------------*\
     | Close keepalive thread                                |
     \*-----------------------------------------------------*/
+    keepalive_thread_mutex.lock();
     keepalive_thread_run = false;
+    keepalive_thread_mutex.unlock();
+
+    keepalive_thread_wake.notify_all();
     keepalive_thread->join();
     delete keepalive_thread;
 
@@ -247,6 +251,8 @@ void RGBController_CorsairV2HW::KeepaliveThread()
                 DeviceUpdateLEDs();
             }
         }
-        std::this_thread::sleep_for(CORSAIR_V2_SLEEP_PERIOD);
+
+        std::unique_lock<std::mutex> wait_lock(keepalive_thread_mutex);
+        keepalive_thread_wake.wait_for(wait_lock, CORSAIR_V2_SLEEP_PERIOD, [this]{ return(!keepalive_thread_run.load()); });
     }
 }

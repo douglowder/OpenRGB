@@ -11,10 +11,28 @@ MAJOR       = 0
 MINOR       = 9
 SUFFIX      = git
 
+#-----------------------------------------------------------------------------------------------#
+# A package build has no git checkout of its own, so both values may arrive on the qmake        #
+#   command line instead.  A command line assignment is in place before this file is parsed,    #
+#   so each default is guarded rather than assigned outright.                                   #
+#-----------------------------------------------------------------------------------------------#
+isEmpty(SHORTHASH) {
 SHORTHASH   = $$system("git rev-parse --short=7 HEAD")
+}
+
+isEmpty(COMMITS) {
 LASTTAG     = "release_"$$MAJOR"."$$MINOR
 COMMAND     = "git rev-list --count "$$LASTTAG"..HEAD"
 COMMITS     = $$system($$COMMAND)
+}
+
+#-----------------------------------------------------------------------------------------------#
+# Without a commit count the library version would end in a bare dot, which names the dylib     #
+#   libopenrgb.0.9..dylib and leaves every consumer looking for a file that does not exist.     #
+#-----------------------------------------------------------------------------------------------#
+isEmpty(COMMITS) {
+COMMITS     = 0
+}
 
 VERSION_NUM = $$MAJOR"."$$MINOR"."$$COMMITS
 VERSION_STR = $$MAJOR"."$$MINOR

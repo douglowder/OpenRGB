@@ -256,8 +256,13 @@ macx {
         OPENRGB_HIDAPI_PKG = hidapi
     }
 
-    # Use mbedtls 3
-    MBEDTLS_PREFIX = $$system(brew --prefix mbedtls@3)
+    #-------------------------------------------------------------------------------------------#
+    # Use mbedtls 3.  A package build can pass MBEDTLS_PREFIX on the qmake command line, which  #
+    #   arrives before this file is parsed, so the Homebrew lookup is only the default.         #
+    #-------------------------------------------------------------------------------------------#
+    isEmpty(MBEDTLS_PREFIX) {
+        MBEDTLS_PREFIX = $$system(brew --prefix mbedtls@3)
+    }
 
     INCLUDEPATH +=                                                                              \
     $$MBEDTLS_PREFIX/include                                                                    \

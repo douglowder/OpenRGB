@@ -27,9 +27,41 @@ Two details are worth knowing:
 - A stop request that arrives while device detection is running is remembered, not acted on immediately. Detection finishes first, because interrupting a USB transfer part-way is worse than waiting for it. On a machine with many I2C or SMBus devices that wait can run to several seconds.
 - Because the first signal restores the default disposition, a second one terminates the process outright. That is the escape hatch when the wait above is not converging.
 
+## Installing with Homebrew on macOS
+
+The tap `douglowder/openrgb` packages the daemon and starts it through `brew services`.
+
+```
+brew tap douglowder/openrgb
+brew install openrgbd
+brew services start openrgbd            # start now and at every login
+brew services info openrgbd             # is it running, and as what
+brew services restart openrgbd
+brew services stop openrgbd
+```
+
+`brew services start` writes `~/Library/LaunchAgents/sh.brew.openrgbd.plist`, under the label `sh.brew.openrgbd`, and loads it. The agent runs as the logged-in user, which is what reaching USB HID devices on macOS needs, and keeps the daemon's configuration and profiles in the user's home directory.
+
+| | |
+| --- | --- |
+| Binary | `$(brew --prefix)/bin/openrgbd` |
+| launchd's stdio | `$(brew --prefix)/var/log/openrgbd.log` |
+| OpenRGB's own log | `~/.config/OpenRGB/logs/` |
+
+The formula builds the core and the daemon only, not the Qt application, so `qmake` is the only thing it takes from Qt. Homebrew's `qtbase` supplies it. `qtbase` refuses to install alongside a force-linked `qt@5`; `brew unlink qt@5` first if `brew install` reports that conflict.
+
+`brew services` takes no daemon arguments, and it regenerates the plist from the formula on every `start`, so an edited plist does not survive. To serve a profile at startup, install the Homebrew binary as an agent with the script below instead:
+
+```
+brew services stop openrgbd
+scripts/openrgbd-launchd.sh install --binary "$(brew --prefix)/bin/openrgbd" --profile expo
+```
+
+Both agents run the same binary and the same port, so run one or the other, not both.
+
 ## Running under launchd on macOS
 
-`scripts/openrgbd-launchd.sh` installs `openrgbd` as a LaunchAgent, so it starts at login and restarts if it fails.
+`scripts/openrgbd-launchd.sh` installs `openrgbd` as a LaunchAgent, so it starts at login and restarts if it fails. It is the way to run a daemon built in this tree, and it takes daemon arguments that the Homebrew service above cannot.
 
 ```
 scripts/openrgbd-launchd.sh install                     # serve with no profile
